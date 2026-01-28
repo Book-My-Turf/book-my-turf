@@ -1,102 +1,154 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const Home = () => {
-  // 'landing', 'login', or 'register'
-  const [view, setView] = useState('landing'); 
+  const navigate = useNavigate();
+  const [view, setView] = useState('login'); 
+  const [selectedRole, setSelectedRole] = useState(3); 
+
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
   
   const [formData, setFormData] = useState({
-    userTypeId: '',
     firstName: '',
     lastName: '',
-    emailAddress: '',
+    emailAddress: '',     
     password: '',
-    permanentAddress: '',
-    cityName: '',
-    contactPhoneNo: ''
+    contactPhoneNo: '',
+    permanentAddress: '', // Correctly mapping to DB
+    cityName: '',         
+    zipCode: '',          // Added
+    userType: { userTypeID: 3 } 
   });
 
-  const [loginData, setLoginData] = useState({
-    emailAddress: '',
-    password: ''
-  });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const getRoleName = (id) => {
+    if (id === 1) return "Admin";
+    if (id === 2) return "Turf Owner";
+    return "Player";
   };
 
-  const handleLoginChange = (e) => {
-    setLoginData({ ...loginData, [e.target.name]: e.target.value });
+  const handleRoleChange = (roleId) => {
+    const id = parseInt(roleId);
+    setSelectedRole(id);
+    setFormData({ ...formData, userType: { userTypeID: id } });
+    if (id === 1) setView('login');
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    console.log("Registering User:", formData);
-    alert("Registration Data Captured! Check Console.");
-    setView('landing');
+    try {
+      const response = await axios.post("http://localhost:8080/api/users/login", {
+        emailAddress: loginData.email,
+        password: loginData.password
+      });
+
+      const user = response.data;
+      if (Number(user.userType.userTypeID) !== Number(selectedRole)) {
+        alert(`Role mismatch. Logged in as ${getRoleName(user.userType.userTypeID)}`);
+        return;
+      }
+
+      localStorage.setItem("activeUser", JSON.stringify(user));
+      if (user.userType.userTypeID === 1) navigate('/admin');
+      else if (user.userType.userTypeID === 2) navigate('/owner-dashboard');
+      else navigate('/user-dashboard');
+
+    } catch (error) {
+      alert("Invalid credentials.");
+    }
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    console.log("Logging in User:", loginData);
-    alert("Login Data Captured! Check Console.");
-    setView('landing');
+    try {
+      // formData now includes permanentAddress and zipCode
+      await axios.post("http://localhost:8080/api/users/register", formData);
+      alert("Registration Successful!");
+      setView('login');
+    } catch (error) {
+      alert("Registration failed. Email might exist.");
+    }
   };
-
-  // Styles
-  const btnStyle = { padding: '10px 20px', cursor: 'pointer', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '5px', margin: '10px' };
-  const loginBtnStyle = { ...btnStyle, backgroundColor: '#007bff' };
-  const inputStyle = { display: 'block', width: '300px', margin: '10px auto', padding: '8px' };
-  const containerStyle = { border: '1px solid #ccc', padding: '20px', display: 'inline-block', borderRadius: '10px', marginTop: '20px' };
 
   return (
-    <div style={{ padding: '50px', textAlign: 'center' }}>
-      <h1>BookMyTurf</h1>
-      
-      {view === 'landing' && (
-        <div>
-          <p>Book your favorite sports turf in seconds.</p>
-          <button onClick={() => setView('login')} style={loginBtnStyle}>Login</button>
-          <button onClick={() => setView('register')} style={btnStyle}>Register Now</button>
+    <div style={containerStyle}>
+      <div style={cardStyle}>
+        <h2 style={headerStyle}>🏟️ BookMyTurf</h2>
+        <div style={roleBtnGroup}>
+          {[3, 2, 1].map(id => (
+            <button key={id} type="button" 
+              style={selectedRole === id ? activeRoleBtn : roleBtn} 
+              onClick={() => handleRoleChange(id)}>{getRoleName(id)}</button>
+          ))}
         </div>
-      )}
 
-      {view === 'login' && (
-        <div style={containerStyle}>
-          <h2>Login</h2>
+        {view === 'login' ? (
           <form onSubmit={handleLoginSubmit}>
-            <input type="email" name="emailAddress" placeholder="Email Address" onChange={handleLoginChange} required style={inputStyle} />
-            <input type="password" name="password" placeholder="Password" onChange={handleLoginChange} required style={inputStyle} />
-            <button type="submit" style={loginBtnStyle}>Login</button>
-            <button type="button" onClick={() => setView('landing')} style={{ ...btnStyle, backgroundColor: '#6c757d' }}>Back</button>
+            <input style={inputStyle} type="email" placeholder="Email" required 
+              onChange={(e) => setLoginData({...loginData, email: e.target.value})} />
+            <input style={inputStyle} type="password" placeholder="Password" required 
+              onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
+            <button type="submit" style={btnPrimary}>Login</button>
+            <p style={toggleTextStyle}>New? <span style={linkStyle} onClick={() => setView('register')}>Register</span></p>
           </form>
-        </div>
-      )}
-
-      {view === 'register' && (
-        <div style={containerStyle}>
-          <h2>User Registration</h2>
+        ) : (
           <form onSubmit={handleRegisterSubmit}>
-            <select name="userTypeId" onChange={handleChange} required style={inputStyle}>
-              <option value="">Select User Type</option>
-              <option value="1">Admin</option>
-              <option value="2">Turf Owner</option>
-              <option value="3">Player</option>
-            </select>
-            <input type="text" name="firstName" placeholder="First Name" onChange={handleChange} required style={inputStyle} />
-            <input type="text" name="lastName" placeholder="Last Name" onChange={handleChange} required style={inputStyle} />
-            <input type="email" name="emailAddress" placeholder="Email Address" onChange={handleChange} required style={inputStyle} />
-            <input type="password" name="password" placeholder="Password" onChange={handleChange} required style={inputStyle} />
-            <input type="text" name="permanentAddress" placeholder="Permanent Address" onChange={handleChange} required style={inputStyle} />
-            <input type="text" name="cityName" placeholder="City Name" onChange={handleChange} required style={inputStyle} />
-            <input type="text" name="contactPhoneNo" placeholder="Contact Phone No" onChange={handleChange} required style={inputStyle} />
+            <div style={{display:'flex', gap:'5px'}}>
+               <input style={inputStyle} placeholder="First Name" required 
+                 onChange={(e) => setFormData({...formData, firstName: e.target.value})} />
+               <input style={inputStyle} placeholder="Last Name" required 
+                 onChange={(e) => setFormData({...formData, lastName: e.target.value})} />
+            </div>
+            <input style={inputStyle} type="email" placeholder="Email" required 
+              onChange={(e) => setFormData({...formData, emailAddress: e.target.value})} />
+            <input style={inputStyle} placeholder="Phone" required 
+              onChange={(e) => setFormData({...formData, contactPhoneNo: e.target.value})} />
             
-            <button type="submit" style={btnStyle}>Submit Registration</button>
-            <button type="button" onClick={() => setView('landing')} style={{ ...btnStyle, backgroundColor: '#6c757d' }}>Back</button>
+            {/* PERMANENT ADDRESS FIELD */}
+            <input 
+              style={inputStyle} 
+              placeholder="Permanent Address" 
+              required 
+              value={formData.permanentAddress}
+              onChange={(e) => setFormData({...formData, permanentAddress: e.target.value})} 
+            />
+
+            <div style={{display:'flex', gap:'5px'}}>
+              <input style={inputStyle} placeholder="City" required 
+                onChange={(e) => setFormData({...formData, cityName: e.target.value})} />
+              
+              {/* ZIP CODE FIELD */}
+              <input 
+                style={inputStyle} 
+                placeholder="Zip Code" 
+                required 
+                value={formData.zipCode}
+                onChange={(e) => setFormData({...formData, zipCode: e.target.value})} 
+              />
+            </div>
+
+            <input style={inputStyle} type="password" placeholder="Password" required 
+              onChange={(e) => setFormData({...formData, password: e.target.value})} />
+            
+            <button type="submit" style={btnPrimary}>Register</button>
+            <p style={toggleTextStyle}>Back to <span style={linkStyle} onClick={() => setView('login')}>Login</span></p>
           </form>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
+
+// Styles
+const containerStyle = { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f2f5' };
+const cardStyle = { width: '400px', padding: '30px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' };
+const headerStyle = { textAlign: 'center', marginBottom: '20px' };
+const roleBtnGroup = { display: 'flex', gap: '10px', marginBottom: '20px' };
+const roleBtn = { flex: 1, padding: '10px', cursor: 'pointer', border: '1px solid #ddd', borderRadius: '5px' };
+const activeRoleBtn = { ...roleBtn, backgroundColor: '#28a745', color: '#fff' };
+const inputStyle = { width: '100%', padding: '12px', marginTop: '10px', borderRadius: '5px', border: '1px solid #ccc', boxSizing: 'border-box' };
+const btnPrimary = { width: '100%', padding: '12px', marginTop: '20px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' };
+const toggleTextStyle = { textAlign: 'center', marginTop: '15px' };
+const linkStyle = { color: '#28a745', cursor: 'pointer', fontWeight: 'bold' };
 
 export default Home;

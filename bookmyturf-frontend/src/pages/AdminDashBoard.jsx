@@ -1,93 +1,64 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 
 const AdminDashBoard = () => {
   const navigate = useNavigate();
+  const activeUser = JSON.parse(localStorage.getItem("activeUser"));
 
-  // Styles
-  const statsContainer = { display: 'flex', gap: '20px', padding: '20px', flexWrap: 'wrap' };
-  const cardStyle = { 
-    flex: '1', 
-    minWidth: '200px', 
-    padding: '20px', 
-    borderRadius: '12px', 
-    color: 'white', 
-    boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-    textAlign: 'center'
-  };
-  const menuCard = {
-    padding: '30px',
-    backgroundColor: '#fff',
-    border: '1px solid #eee',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: '0.3s',
-    textAlign: 'center',
-    width: '250px'
+  const handleLogout = () => {
+    localStorage.removeItem("activeUser");
+    navigate('/');
   };
 
   return (
-    <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', fontFamily: 'Segoe UI' }}>
-      {/* Header */}
-      <div style={{ backgroundColor: '#2c3e50', color: 'white', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>BookMyTurf Admin Portal</h2>
-        <button onClick={() => navigate('/')} style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>Logout</button>
+    <div style={dashboardLayout}>
+      {/* SIDEBAR */}
+      <div style={sidebarStyle}>
+        <h2 style={{color: '#fff', textAlign: 'center'}}>Admin Panel</h2>
+        <hr style={{borderColor: '#444'}} />
+        <nav style={navStyle}>
+          <Link to="/admin" style={linkStyle}>🏠 Dashboard Home</Link>
+          <Link to="/admin/users" style={linkStyle}>👥 User Management</Link>
+          <Link to="/admin/turfs" style={linkStyle}>🏟️ Turf Approvals</Link>
+        </nav>
+        <button onClick={handleLogout} style={logoutBtn}>Logout</button>
       </div>
 
-      {/* Quick Stats Bar (Requirement: Overview) */}
-      <div style={statsContainer}>
-        <div style={{ ...cardStyle, backgroundColor: '#3498db' }}>
-          <h3>Total Users</h3>
-          <p style={{ fontSize: '28px', margin: '10px 0' }}>1,240</p>
-        </div>
-        <div style={{ ...cardStyle, backgroundColor: '#2ecc71' }}>
-          <h3>Revenue</h3>
-          <p style={{ fontSize: '28px', margin: '10px 0' }}>₹85,400</p>
-        </div>
-        <div style={{ ...cardStyle, backgroundColor: '#f1c40f' }}>
-          <h3>Active Turfs</h3>
-          <p style={{ fontSize: '28px', margin: '10px 0' }}>42</p>
-        </div>
-        <div style={{ ...cardStyle, backgroundColor: '#e67e22' }}>
-          <h3>Pending Approvals</h3>
-          <p style={{ fontSize: '28px', margin: '10px 0' }}>5</p>
-        </div>
-      </div>
-
-      {/* Main Navigation Menu */}
-      <div style={{ padding: '30px' }}>
-        <h3>Management Modules</h3>
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px' }}>
+      {/* MAIN CONTENT AREA */}
+      <div style={mainContentStyle}>
+        <header style={headerStyle}>
+          <h3>Welcome, {activeUser?.firstName || 'Admin'}</h3>
+          <span style={statusBadge}>System Online</span>
+        </header>
+        
+        <div style={{padding: '20px'}}>
+          {/* This renders the child routes like AdminUserManagement */}
+          <Outlet /> 
           
-          {/* USER MANAGEMENT - Links to the page we built earlier */}
-          <div style={menuCard} onClick={() => navigate('/admin/users')} onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 8px 15px rgba(0,0,0,0.1)'} onMouseOut={(e) => e.currentTarget.style.boxShadow = 'none'}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>👥</div>
-            <h4>User Management</h4>
-            <p style={{ fontSize: '12px', color: '#666' }}>Profiles, Bookings, & Status Control</p>
-          </div>
-
-          <div style={menuCard} onClick={() => alert('Turf Management coming soon!')}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>🏟️</div>
-            <h4>Turf Management</h4>
-            <p style={{ fontSize: '12px', color: '#666' }}>Approve Turfs & Photo Gallery</p>
-          </div>
-
-          <div style={menuCard} onClick={() => alert('Financial Reports coming soon!')}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>📈</div>
-            <h4>Reports & Analytics</h4>
-            <p style={{ fontSize: '12px', color: '#666' }}>Revenue, Cancellations & Trends</p>
-          </div>
-
-          <div style={menuCard} onClick={() => alert('Support coming soon!')}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>💬</div>
-            <h4>Communication</h4>
-            <p style={{ fontSize: '12px', color: '#666' }}>Send Notifications & Emails</p>
-          </div>
-
+          {/* Default view if no child route is active */}
+          {!window.location.pathname.includes('users') && (
+            <div style={statsGrid}>
+              <div style={card}><h4>Active Users</h4><p>24</p></div>
+              <div style={card}><h4>Total Bookings</h4><p>156</p></div>
+              <div style={card}><h4>Revenue</h4><p>₹45,000</p></div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+// --- STYLES ---
+const dashboardLayout = { display: 'flex', height: '100vh', backgroundColor: '#f4f7f6' };
+const sidebarStyle = { width: '250px', backgroundColor: '#2c3e50', padding: '20px', display: 'flex', flexDirection: 'column' };
+const navStyle = { display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '30px', flex: 1 };
+const linkStyle = { color: '#bdc3c7', textDecoration: 'none', fontSize: '16px', fontWeight: '500' };
+const mainContentStyle = { flex: 1, overflowY: 'auto' };
+const headerStyle = { backgroundColor: '#fff', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' };
+const logoutBtn = { padding: '10px', backgroundColor: '#e74c3c', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' };
+const statusBadge = { backgroundColor: '#2ecc71', color: '#fff', padding: '5px 10px', borderRadius: '15px', fontSize: '12px' };
+const statsGrid = { display: 'flex', gap: '20px', marginTop: '20px' };
+const card = { flex: 1, backgroundColor: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center' };
 
 export default AdminDashBoard;
